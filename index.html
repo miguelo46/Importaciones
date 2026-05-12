@@ -9,15 +9,15 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   :root {
-    --bg:       #0a0c10;
-    --surface:  #111318;
-    --border:   #1e2230;
-    --accent:   #00e5b0;
-    --accent2:  #ff6b35;
-    --accent3:  #4d9fff;
-    --text:     #e8eaf0;
-    --muted:    #5a6080;
-    --card-bg:  #13161f;
+    --bg:       #f4f6fa;
+    --surface:  #ffffff;
+    --border:   #dde1ec;
+    --accent:   #0077cc;
+    --accent2:  #e8530a;
+    --accent3:  #0099cc;
+    --text:     #1a1d2e;
+    --muted:    #7a82a0;
+    --card-bg:  #ffffff;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -36,8 +36,8 @@
     position: fixed;
     inset: 0;
     background-image:
-      linear-gradient(rgba(0,229,176,.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,229,176,.03) 1px, transparent 1px);
+      linear-gradient(rgba(0,119,204,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,119,204,.04) 1px, transparent 1px);
     background-size: 40px 40px;
     pointer-events: none;
     z-index: 0;
@@ -316,7 +316,7 @@
     cursor: pointer;
   }
   tbody tr:last-child { border-bottom: none; }
-  tbody tr:hover { background: rgba(0,229,176,.04); }
+  tbody tr:hover { background: rgba(0,119,204,.05); }
 
   tbody td {
     padding: 13px 16px;
@@ -340,16 +340,16 @@
     font-weight: 500;
   }
 
-  .badge-green  { background: rgba(0,229,176,.12); color: #00e5b0; border: 1px solid rgba(0,229,176,.25); }
-  .badge-blue   { background: rgba(77,159,255,.12); color: #4d9fff; border: 1px solid rgba(77,159,255,.25); }
-  .badge-orange { background: rgba(255,107,53,.12); color: #ff6b35; border: 1px solid rgba(255,107,53,.25); }
-  .badge-gray   { background: rgba(90,96,128,.12); color: #8a90b0; border: 1px solid rgba(90,96,128,.25); }
-  .badge-yellow { background: rgba(255,200,50,.12); color: #ffc832; border: 1px solid rgba(255,200,50,.25); }
+  .badge-green  { background: #e6f7f2; color: #00875a; border: 1px solid #b3e8d8; }
+  .badge-blue   { background: #e6f2fc; color: #0055aa; border: 1px solid #b3d4f5; }
+  .badge-orange { background: #fff0ea; color: #c04a00; border: 1px solid #f5c9b0; }
+  .badge-gray   { background: #f0f2f7; color: #5a6080; border: 1px solid #d0d5e8; }
+  .badge-yellow { background: #fffae6; color: #8a6000; border: 1px solid #f5e0a0; }
 
   /* ── TIPO BADGE ── */
-  .tipo-fcl { color: var(--accent); }
-  .tipo-lcl { color: var(--accent3); }
-  .tipo-air { color: var(--accent2); }
+  .tipo-fcl { color: #0077cc; }
+  .tipo-lcl { color: #0099cc; }
+  .tipo-air { color: #e8530a; }
 
   /* ── MODAL ── */
   .modal-overlay {
@@ -493,7 +493,7 @@
   /* ── SCROLLBAR ── */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb { background: #c0c8dc; border-radius: 3px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
 
   @media (max-width: 600px) {
@@ -837,9 +837,9 @@ function renderKPIs() {
 // ── CHARTS ──────────────────────────────────────────────
 function renderCharts() {
   renderPie('chartEstado', countBy(allData, 'ESTADO'),
-    ['#00e5b0','#4d9fff','#ff6b35','#ffc832','#8a90b0','#e05cf7']);
+    ['#0077cc','#00a878','#e8530a','#f0a500','#9b59b6','#e05cf7']);
   renderPie('chartTipo', countBy(allData, 'TIPO'),
-    ['#00e5b0','#4d9fff','#ff6b35','#ffc832']);
+    ['#0077cc','#00a878','#e8530a','#f0a500']);
   renderBar('chartOrigen', countBy(allData, 'ORIGEN / PUERTO'));
   renderGastosPorSemana();
 }
@@ -898,7 +898,7 @@ function renderGastosPorSemana() {
       labels,
       datasets: [
         {
-          label: 'Tributos',
+          label: 'Tributos AR$',
           data: tributos,
           backgroundColor: 'rgba(77,159,255,0.75)',
           borderColor: '#4d9fff',
@@ -906,7 +906,7 @@ function renderGastosPorSemana() {
           borderRadius: { topLeft: 0, topRight: 0, bottomLeft: 4, bottomRight: 4 }
         },
         {
-          label: 'Gastos Impo',
+          label: 'Gastos Impo AR$',
           data: gastos,
           backgroundColor: 'rgba(224,92,247,0.75)',
           borderColor: '#e05cf7',
@@ -921,13 +921,13 @@ function renderGastosPorSemana() {
       plugins: {
         legend: {
           position: 'top',
-          labels: { color: '#8a90b0', font: { size: 11, family: 'DM Mono' }, boxWidth: 12, padding: 16 }
+          labels: { color: '#5a6080', font: { size: 11, family: 'DM Mono' }, boxWidth: 12, padding: 16 }
         },
         tooltip: {
           callbacks: {
             label: ctx => {
               const v = ctx.raw;
-              return ` ${ctx.dataset.label}: ${v >= 1000000
+              return ` ${ctx.dataset.label}: AR$ ${v >= 1000000
                 ? (v/1000000).toFixed(2) + 'M'
                 : v.toLocaleString('es-AR')}`;
             }
@@ -937,17 +937,17 @@ function renderGastosPorSemana() {
       scales: {
         x: {
           stacked: true,
-          ticks: { color: '#8a90b0', font: { size: 10, family: 'DM Mono' } },
-          grid: { color: '#1e2230' }
+          ticks: { color: '#5a6080', font: { size: 10, family: 'DM Mono' } },
+          grid: { color: '#dde1ec' }
         },
         y: {
           stacked: true,
           ticks: {
-            color: '#5a6080',
+            color: '#7a82a0',
             font: { size: 9, family: 'DM Mono' },
             callback: v => v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v.toLocaleString('es-AR')
           },
-          grid: { color: '#1e2230' }
+          grid: { color: '#dde1ec' }
         }
       }
     }
@@ -970,11 +970,11 @@ function renderPie(id, counts, colors) {
     data: {
       labels: Object.keys(counts),
       datasets: [{ data: Object.values(counts), backgroundColor: colors,
-        borderColor: '#13161f', borderWidth: 2 }]
+        borderColor: '#ffffff', borderWidth: 2 }]
     },
     options: {
       plugins: { legend: { position: 'bottom',
-        labels: { color: '#8a90b0', font: { size: 10, family: 'DM Mono' }, boxWidth: 10, padding: 12 }
+        labels: { color: '#5a6080', font: { size: 10, family: 'DM Mono' }, boxWidth: 10, padding: 12 }
       }},
       cutout: '65%'
     }
@@ -997,8 +997,8 @@ function renderBar(id, counts) {
       indexAxis: 'y',
       plugins: { legend: { display: false } },
       scales: {
-        x: { ticks: { color: '#5a6080', font: { size: 9 } }, grid: { color: '#1e2230' } },
-        y: { ticks: { color: '#8a90b0', font: { size: 10, family: 'DM Mono' } }, grid: { display: false } }
+        x: { ticks: { color: '#7a82a0', font: { size: 9 } }, grid: { color: '#dde1ec' } },
+        y: { ticks: { color: '#5a6080', font: { size: 10, family: 'DM Mono' } }, grid: { display: false } }
       }
     }
   });
