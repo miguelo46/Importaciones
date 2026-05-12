@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Import Tracker — Seguimiento de Importaciones</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:       #0a0c10;
+    --surface:  #111318;
+    --border:   #1e2230;
+    --accent:   #00e5b0;
+    --accent2:  #ff6b35;
+    --accent3:  #4d9fff;
+    --text:     #e8eaf0;
+    --muted:    #5a6080;
+    --card-bg:  #13161f;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── GRID BG ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,176,.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,176,.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 28px 40px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  .logo-mark {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: -1px;
+  }
+
+  .logo-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .sheet-id-input {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 6px;
+    width: 320px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .sheet-id-input:focus { border-color: var(--accent); }
+  .sheet-id-input::placeholder { color: var(--muted); }
+
+  .btn-load {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 9px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: opacity .2s, transform .1s;
+  }
+  .btn-load:hover { opacity: .85; transform: translateY(-1px); }
+  .btn-load:active { transform: translateY(0); }
+
+  .last-update {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  /* ── MAIN ── */
+  main {
+    position: relative;
+    z-index: 1;
+    padding: 32px 40px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  /* ── KPI ROW ── */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .kpi {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .2s;
+  }
+  .kpi:hover { border-color: var(--accent); }
+
+  .kpi::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--kpi-color, var(--accent));
+  }
+
+  .kpi-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .kpi-value {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--kpi-color, var(--accent));
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .kpi-desc {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* ── CHARTS ROW ── */
+  .charts-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 32px;
+  }
+
+  @media (max-width: 900px) {
+    .charts-row { grid-template-columns: 1fr; }
+  }
+
+  .chart-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px;
+  }
+
+  .chart-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 18px;
+  }
+
+  .chart-wrap {
+    position: relative;
+    height: 200px;
+  }
+
+  /* ── FILTERS ── */
+  .filters-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    align-items: center;
+  }
+
+  .filter-select {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 6px;
+    outline: none;
+    cursor: pointer;
+    transition: border-color .2s;
+  }
+  .filter-select:focus { border-color: var(--accent); }
+
+  .filter-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .search-input {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 6px;
+    outline: none;
+    width: 220px;
+    transition: border-color .2s;
+  }
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--muted); }
+
+  /* ── TABLE ── */
+  .table-wrap {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .table-header-bar {
+    padding: 16px 22px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .table-header-bar h2 {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .5px;
+  }
+
+  .record-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .tbl-scroll { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  thead th {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+  }
+  thead th:hover { color: var(--accent); }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background .15s;
+    cursor: pointer;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(0,229,176,.04); }
+
+  tbody td {
+    padding: 13px 16px;
+    white-space: nowrap;
+    color: var(--text);
+  }
+
+  .mono { font-family: 'DM Mono', monospace; font-size: 11px; }
+  .muted-cell { color: var(--muted); }
+
+  /* ── ESTADO BADGE ── */
+  .badge {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+
+  .badge-green  { background: rgba(0,229,176,.12); color: #00e5b0; border: 1px solid rgba(0,229,176,.25); }
+  .badge-blue   { background: rgba(77,159,255,.12); color: #4d9fff; border: 1px solid rgba(77,159,255,.25); }
+  .badge-orange { background: rgba(255,107,53,.12); color: #ff6b35; border: 1px solid rgba(255,107,53,.25); }
+  .badge-gray   { background: rgba(90,96,128,.12); color: #8a90b0; border: 1px solid rgba(90,96,128,.25); }
+  .badge-yellow { background: rgba(255,200,50,.12); color: #ffc832; border: 1px solid rgba(255,200,50,.25); }
+
+  /* ── TIPO BADGE ── */
+  .tipo-fcl { color: var(--accent); }
+  .tipo-lcl { color: var(--accent3); }
+  .tipo-air { color: var(--accent2); }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.7);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    width: 560px;
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    animation: slideUp .2s ease;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 18px; right: 20px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 22px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .modal-close:hover { color: var(--text); }
+
+  .modal-ref {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    color: var(--accent);
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+  }
+
+  .modal-title {
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 20px;
+    line-height: 1.2;
+  }
+
+  .modal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .modal-field label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .modal-field span {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .modal-financials {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+
+  .fin-item label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .fin-item span {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+  }
+
+  .empty-state .big { font-size: 48px; margin-bottom: 16px; }
+  .empty-state p { font-size: 14px; line-height: 1.6; }
+
+  /* ── LOADING ── */
+  .loading {
+    display: none;
+    text-align: center;
+    padding: 40px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+  }
+
+  .spinner {
+    width: 32px; height: 32px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+    margin: 0 auto 16px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  @media (max-width: 600px) {
+    header { padding: 16px 20px; }
+    main { padding: 20px; }
+    .sheet-id-input { width: 100%; }
+    .modal-grid { grid-template-columns: 1fr; }
+    .modal-financials { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <span class="logo-mark">IMPORT</span>
+    <span class="logo-sub">tracker</span>
+  </div>
+  <div class="header-right">
+    <input class="sheet-id-input" id="sheetId" type="text"
+      placeholder="ID de Google Sheet..."
+      value="1oO6weop_-n_xRhTFP51clm1MANmawiKIyBlVM_WhvpQ">
+    <button class="btn-load" onclick="loadSheet()">↻ Actualizar</button>
+    <span class="last-update" id="lastUpdate">—</span>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main>
+
+  <!-- KPIs -->
+  <div class="kpi-row" id="kpiRow">
+    <div class="kpi" style="--kpi-color: var(--accent)">
+      <div class="kpi-label">Total</div>
+      <div class="kpi-value" id="kpiTotal">—</div>
+      <div class="kpi-desc">importaciones</div>
+    </div>
+    <div class="kpi" style="--kpi-color: var(--accent3)">
+      <div class="kpi-label">On Board</div>
+      <div class="kpi-value" id="kpiOnBoard">—</div>
+      <div class="kpi-desc">en tránsito</div>
+    </div>
+    <div class="kpi" style="--kpi-color: var(--accent2)">
+      <div class="kpi-label">Pendientes</div>
+      <div class="kpi-value" id="kpiPendientes">—</div>
+      <div class="kpi-desc">esperando embarque</div>
+    </div>
+    <div class="kpi" style="--kpi-color: #00e5b0">
+      <div class="kpi-label">Arribados</div>
+      <div class="kpi-value" id="kpiArribados">—</div>
+      <div class="kpi-desc">en destino</div>
+    </div>
+    <div class="kpi" style="--kpi-color: #ffc832">
+      <div class="kpi-label">FOB Total</div>
+      <div class="kpi-value" id="kpiFob">—</div>
+      <div class="kpi-desc">USD</div>
+    </div>
+    <div class="kpi" style="--kpi-color: var(--accent2)">
+      <div class="kpi-label">CIF Total</div>
+      <div class="kpi-value" id="kpiCif">—</div>
+      <div class="kpi-desc">USD</div>
+    </div>
+    <div class="kpi" style="--kpi-color: #4d9fff">
+      <div class="kpi-label">Tributos</div>
+      <div class="kpi-value" id="kpiTributos">—</div>
+      <div class="kpi-desc">embarques no arribados</div>
+    </div>
+    <div class="kpi" style="--kpi-color: #e05cf7">
+      <div class="kpi-label">Gastos Impo</div>
+      <div class="kpi-value" id="kpiGastos">—</div>
+      <div class="kpi-desc">embarques no arribados</div>
+    </div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title">Estado de embarques</div>
+      <div class="chart-wrap"><canvas id="chartEstado"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Tipo de carga</div>
+      <div class="chart-wrap"><canvas id="chartTipo"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Origen / Puerto</div>
+      <div class="chart-wrap"><canvas id="chartOrigen"></canvas></div>
+    </div>
+  </div>
+
+  <!-- CHART GASTOS POR SEMANA ETA -->
+  <div class="chart-card" style="margin-bottom: 32px;">
+    <div class="chart-title">Tributos + Gastos Impo por semana de ETA — embarques no arribados</div>
+    <div class="chart-wrap" style="height: 240px;"><canvas id="chartGastosSemana"></canvas></div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filters-row">
+    <span class="filter-label">Filtrar:</span>
+    <input class="search-input" id="searchInput" type="text" placeholder="Buscar ref, shipper, origen…" oninput="renderTable()">
+    <select class="filter-select" id="filterEstado" onchange="renderTable()">
+      <option value="">Todos los estados</option>
+    </select>
+    <select class="filter-select" id="filterTipo" onchange="renderTable()">
+      <option value="">Todos los tipos</option>
+    </select>
+    <select class="filter-select" id="filterCnee" onchange="renderTable()">
+      <option value="">Todos los CNEE</option>
+    </select>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-wrap">
+    <div class="table-header-bar">
+      <h2>Detalle de importaciones</h2>
+      <span class="record-count" id="recordCount">—</span>
+    </div>
+
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      CARGANDO DATOS...
+    </div>
+
+    <div class="tbl-scroll">
+      <table id="mainTable">
+        <thead>
+          <tr>
+            <th onclick="sortBy('REF.')">REF.</th>
+            <th onclick="sortBy('SHIPPER')">SHIPPER</th>
+            <th onclick="sortBy('CNEE')">CNEE</th>
+            <th onclick="sortBy('TIPO')">TIPO</th>
+            <th onclick="sortBy('BUQUE / AIR')">BUQUE / AIR</th>
+            <th onclick="sortBy('ORIGEN / PUERTO')">ORIGEN</th>
+            <th onclick="sortBy('ETD')">ETD</th>
+            <th onclick="sortBy('ETA')">ETA</th>
+            <th onclick="sortBy('ESTADO')">ESTADO</th>
+            <th onclick="sortBy('FOB USD')">FOB USD</th>
+            <th onclick="sortBy('CIF USD')">CIF USD</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr><td colspan="11">
+            <div class="empty-state">
+              <div class="big">📦</div>
+              <p>Cargá los datos usando el botón <strong>↻ Actualizar</strong><br>o esperá a que carguen automáticamente.</p>
+            </div>
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" id="modalContent">
+    <button class="modal-close" onclick="closeModalDirect()">×</button>
+    <div class="modal-ref" id="mRef"></div>
+    <div class="modal-title" id="mTitle"></div>
+    <div class="modal-grid" id="mGrid"></div>
+    <div class="modal-financials" id="mFin"></div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────
+const SHEET_ID_DEFAULT = '1oO6weop_-n_xRhTFP51clm1MANmawiKIyBlVM_WhvpQ';
+
+// Datos embebidos como fallback (tus datos reales)
+const FALLBACK_DATA = [
+  {
+    'REF.': 'CAI000124', 'SHIPPER': 'SQUARE APPAREL LTD', 'CNEE': 'TEJICA S.A.',
+    'ORDER NO.': '***', 'AÑO': '2026', 'TIPO': 'AIR', 'BL/HAWB/CRT': 'ALLA2600029',
+    'BUQUE / AIR': 'AIR', 'ORIGEN / PUERTO': 'DHAKA', 'ETD': '24/2/2026', 'ETA': '4/3/2026',
+    'ESTADO': 'ARRIBADO / PAGO PENDIENTE', 'FOB USD': '', 'CIF USD': '', 'TRIBUTOS': '', 'GASTOS IMPO': ''
+  },
+  {
+    'REF.': 'CMI000394', 'SHIPPER': 'China Xinxing Xiamen Imp.&Exp. Co., Ltd', 'CNEE': 'VARENNA SRL',
+    'ORDER NO.': '***', 'AÑO': '2026', 'TIPO': 'FCL', 'BL/HAWB/CRT': 'BGT26040020',
+    'BUQUE / AIR': 'SAN ANTONIO MAERSK', 'ORIGEN / PUERTO': 'SHANGHAI', 'ETD': '8/2/2026', 'ETA': '12/4/2026',
+    'ESTADO': 'ON BOARD', 'FOB USD': '20496', 'CIF USD': '30193.72', 'TRIBUTOS': '33813600', 'GASTOS IMPO': '31420364'
+  },
+  {
+    'REF.': 'CMI000408', 'SHIPPER': 'PALMIYE DOKUMA', 'CNEE': 'TEJICA S.A.',
+    'ORDER NO.': '***', 'AÑO': '2026', 'TIPO': 'LCL', 'BL/HAWB/CRT': '32629963',
+    'BUQUE / AIR': 'MSC AMALFI', 'ORIGEN / PUERTO': 'ISTAMBUL', 'ETD': '19/2/2026', 'ETA': '20/4/2026',
+    'ESTADO': 'ON BOARD', 'FOB USD': '15000', 'CIF USD': '18000', 'TRIBUTOS': '20000000', 'GASTOS IMPO': '5000000'
+  },
+  {
+    'REF.': 'CMI000398', 'SHIPPER': 'OGUZTEKSTIL', 'CNEE': 'TEJICA S.A.',
+    'ORDER NO.': '***', 'AÑO': '2026', 'TIPO': 'FCL', 'BL/HAWB/CRT': '***',
+    'BUQUE / AIR': 'MSC CORUNA', 'ORIGEN / PUERTO': 'TURQUIA', 'ETD': '5/4/2026', 'ETA': '4/5/2026',
+    'ESTADO': 'AGUARDANDO CONFIRMACION DE BOOKING', 'FOB USD': '', 'CIF USD': '', 'TRIBUTOS': '', 'GASTOS IMPO': ''
+  },
+  {
+    'REF.': 'CMI000410', 'SHIPPER': 'CARREMAN CO., LTD', 'CNEE': 'TEJICA S.A.',
+    'ORDER NO.': '***', 'AÑO': '2026', 'TIPO': 'LCL', 'BL/HAWB/CRT': 'BL',
+    'BUQUE / AIR': '***', 'ORIGEN / PUERTO': 'CONSTANTA', 'ETD': '***', 'ETA': '***',
+    'ESTADO': 'ESPERANDO OK PARA EMBARCAR', 'FOB USD': '', 'CIF USD': '', 'TRIBUTOS': '', 'GASTOS IMPO': ''
+  },
+  {
+    'REF.': 'CMI000401', 'SHIPPER': 'SQUARE APPAREL LTD', 'CNEE': 'TEJICA S.A.',
+    'ORDER NO.': '***', 'AÑO': '2026', 'TIPO': 'LCL', 'BL/HAWB/CRT': 'BL',
+    'BUQUE / AIR': '***', 'ORIGEN / PUERTO': 'Chattogram', 'ETD': '***', 'ETA': '***',
+    'ESTADO': 'ESPERANDO OK PARA EMBARCAR', 'FOB USD': '', 'CIF USD': '', 'TRIBUTOS': '', 'GASTOS IMPO': ''
+  },
+  {
+    'REF.': 'CMI000406', 'SHIPPER': 'RAJAPALAYAM MILLS', 'CNEE': 'TEJICA S.A.',
+    'ORDER NO.': '***', 'AÑO': '2026', 'TIPO': 'LCL', 'BL/HAWB/CRT': 'BL',
+    'BUQUE / AIR': '***', 'ORIGEN / PUERTO': '???', 'ETD': '***', 'ETA': '***',
+    'ESTADO': 'ESPERANDO OK PARA EMBARCAR', 'FOB USD': '', 'CIF USD': '', 'TRIBUTOS': '', 'GASTOS IMPO': ''
+  },
+  {
+    'REF.': '***', 'SHIPPER': 'DAGiULiO GROUP', 'CNEE': 'TEJICA S.A.',
+    'ORDER NO.': '***', 'AÑO': '2026', 'TIPO': '????', 'BL/HAWB/CRT': '***',
+    'BUQUE / AIR': '***', 'ORIGEN / PUERTO': '????', 'ETD': '***', 'ETA': '***',
+    'ESTADO': 'ESPERANDO OK PARA EMBARCAR', 'FOB USD': '', 'CIF USD': '', 'TRIBUTOS': '', 'GASTOS IMPO': ''
+  },
+  {
+    'REF.': '***', 'SHIPPER': 'MARNICO', 'CNEE': 'TEJICA S.A.',
+    'ORDER NO.': '***', 'AÑO': '2026', 'TIPO': '????', 'BL/HAWB/CRT': '***',
+    'BUQUE / AIR': '***', 'ORIGEN / PUERTO': '????', 'ETD': '***', 'ETA': '***',
+    'ESTADO': 'ESPERANDO OK PARA EMBARCAR', 'FOB USD': '', 'CIF USD': '', 'TRIBUTOS': '', 'GASTOS IMPO': ''
+  }
+];
+
+// ── STATE ────────────────────────────────────────────────
+let allData = [];
+let sortCol = '';
+let sortAsc = true;
+let charts = {};
+
+// ── INIT ────────────────────────────────────────────────
+window.onload = () => {
+  loadSheet();
+};
+
+// ── LOAD DATA ───────────────────────────────────────────
+async function loadSheet() {
+  const id = document.getElementById('sheetId').value.trim() || SHEET_ID_DEFAULT;
+  const url = `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=0`;
+
+  document.getElementById('loading').style.display = 'block';
+
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error('No se pudo acceder');
+    const csv = await resp.text();
+
+    Papa.parse(csv, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        allData = results.data.filter(r => r['REF.'] || r['SHIPPER']);
+        finishLoad();
+      }
+    });
+  } catch (e) {
+    // Usa datos embebidos si no se puede acceder al sheet
+    allData = FALLBACK_DATA;
+    finishLoad();
+    document.getElementById('lastUpdate').textContent = '⚠ Datos locales (hacer sheet público para sincronizar)';
+  }
+}
+
+function finishLoad() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('lastUpdate').textContent =
+    'Actualizado: ' + new Date().toLocaleTimeString('es-AR');
+  populateFilters();
+  renderKPIs();
+  renderCharts();
+  renderTable();
+}
+
+// ── FILTERS ─────────────────────────────────────────────
+function populateFilters() {
+  const estados = [...new Set(allData.map(r => r['ESTADO']).filter(Boolean))].sort();
+  const tipos   = [...new Set(allData.map(r => r['TIPO']).filter(Boolean))].sort();
+  const cnees   = [...new Set(allData.map(r => r['CNEE']).filter(Boolean))].sort();
+
+  fillSelect('filterEstado', estados);
+  fillSelect('filterTipo', tipos);
+  fillSelect('filterCnee', cnees);
+}
+
+function fillSelect(id, values) {
+  const sel = document.getElementById(id);
+  const cur = sel.value;
+  while (sel.options.length > 1) sel.remove(1);
+  values.forEach(v => {
+    const o = document.createElement('option');
+    o.value = o.textContent = v;
+    sel.appendChild(o);
+  });
+  sel.value = cur;
+}
+
+function getFiltered() {
+  const search  = document.getElementById('searchInput').value.toLowerCase();
+  const estado  = document.getElementById('filterEstado').value;
+  const tipo    = document.getElementById('filterTipo').value;
+  const cnee    = document.getElementById('filterCnee').value;
+
+  return allData.filter(r => {
+    const txt = Object.values(r).join(' ').toLowerCase();
+    return (!search  || txt.includes(search))
+        && (!estado  || r['ESTADO'] === estado)
+        && (!tipo    || r['TIPO']   === tipo)
+        && (!cnee    || r['CNEE']   === cnee);
+  });
+}
+
+// ── KPIs ────────────────────────────────────────────────
+function renderKPIs() {
+  const d = allData;
+  const onBoard    = d.filter(r => r['ESTADO']?.toUpperCase().includes('ON BOARD')).length;
+  const pendientes = d.filter(r => r['ESTADO']?.toUpperCase().includes('ESPERANDO') || r['ESTADO']?.toUpperCase().includes('AGUARDANDO')).length;
+  const arribados  = d.filter(r => r['ESTADO']?.toUpperCase().includes('ARRIBA')).length;
+
+  const fob = d.reduce((s, r) => s + parseMoney(r['FOB USD']), 0);
+  const cif = d.reduce((s, r) => s + parseMoney(r['CIF USD']), 0);
+
+  // Embarques no arribados = todos menos los que tienen ARRIBA en el estado
+  const noArribados = d.filter(r => !r['ESTADO']?.toUpperCase().includes('ARRIBA'));
+  const tributos = noArribados.reduce((s, r) => s + parseMoney(r['TRIBUTOS']), 0);
+  const gastos   = noArribados.reduce((s, r) => s + parseMoney(r['GASTOS IMPO']), 0);
+
+  document.getElementById('kpiTotal').textContent      = d.length;
+  document.getElementById('kpiOnBoard').textContent    = onBoard;
+  document.getElementById('kpiPendientes').textContent = pendientes;
+  document.getElementById('kpiArribados').textContent  = arribados;
+  document.getElementById('kpiFob').textContent        = fob ? formatK(fob) : '—';
+  document.getElementById('kpiCif').textContent        = cif ? formatK(cif) : '—';
+  document.getElementById('kpiTributos').textContent   = tributos ? formatK(tributos) : '—';
+  document.getElementById('kpiGastos').textContent     = gastos   ? formatK(gastos)   : '—';
+}
+
+// ── CHARTS ──────────────────────────────────────────────
+function renderCharts() {
+  renderPie('chartEstado', countBy(allData, 'ESTADO'),
+    ['#00e5b0','#4d9fff','#ff6b35','#ffc832','#8a90b0','#e05cf7']);
+  renderPie('chartTipo', countBy(allData, 'TIPO'),
+    ['#00e5b0','#4d9fff','#ff6b35','#ffc832']);
+  renderBar('chartOrigen', countBy(allData, 'ORIGEN / PUERTO'));
+  renderGastosPorSemana();
+}
+
+// ── GASTOS POR SEMANA DE ETA ─────────────────────────────
+function parseDate(str) {
+  if (!str || str === '***' || str === '???') return null;
+  // Soporta dd/mm/yyyy y yyyy-mm-dd
+  const parts = str.includes('/') ? str.split('/') : str.split('-');
+  if (parts.length !== 3) return null;
+  const [d, m, y] = str.includes('/') ? parts : [parts[2], parts[1], parts[0]];
+  const dt = new Date(+y, +m - 1, +d);
+  return isNaN(dt) ? null : dt;
+}
+
+function getWeekLabel(date) {
+  // Lunes de la semana como etiqueta
+  const d = new Date(date);
+  const day = d.getDay() || 7;
+  d.setDate(d.getDate() - day + 1); // lunes
+  return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
+}
+
+function renderGastosPorSemana() {
+  // Solo embarques no arribados con ETA válida
+  const noArrib = allData.filter(r =>
+    !r['ESTADO']?.toUpperCase().includes('ARRIBA') &&
+    parseDate(r['ETA'])
+  );
+
+  // Agrupar por semana
+  const semanas = {};
+  noArrib.forEach(r => {
+    const dt = parseDate(r['ETA']);
+    if (!dt) return;
+    const label = getWeekLabel(dt);
+    if (!semanas[label]) semanas[label] = { tributos: 0, gastos: 0, fecha: dt };
+    semanas[label].tributos += parseMoney(r['TRIBUTOS']);
+    semanas[label].gastos   += parseMoney(r['GASTOS IMPO']);
+  });
+
+  // Ordenar por fecha
+  const sorted = Object.entries(semanas)
+    .sort((a, b) => a[1].fecha - b[1].fecha);
+
+  const labels    = sorted.map(([k]) => 'Sem ' + k);
+  const tributos  = sorted.map(([, v]) => v.tributos);
+  const gastos    = sorted.map(([, v]) => v.gastos);
+
+  if (charts['chartGastosSemana']) charts['chartGastosSemana'].destroy();
+  const ctx = document.getElementById('chartGastosSemana').getContext('2d');
+
+  charts['chartGastosSemana'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Tributos',
+          data: tributos,
+          backgroundColor: 'rgba(77,159,255,0.75)',
+          borderColor: '#4d9fff',
+          borderWidth: 1,
+          borderRadius: { topLeft: 0, topRight: 0, bottomLeft: 4, bottomRight: 4 }
+        },
+        {
+          label: 'Gastos Impo',
+          data: gastos,
+          backgroundColor: 'rgba(224,92,247,0.75)',
+          borderColor: '#e05cf7',
+          borderWidth: 1,
+          borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 }
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: { color: '#8a90b0', font: { size: 11, family: 'DM Mono' }, boxWidth: 12, padding: 16 }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const v = ctx.raw;
+              return ` ${ctx.dataset.label}: ${v >= 1000000
+                ? (v/1000000).toFixed(2) + 'M'
+                : v.toLocaleString('es-AR')}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          stacked: true,
+          ticks: { color: '#8a90b0', font: { size: 10, family: 'DM Mono' } },
+          grid: { color: '#1e2230' }
+        },
+        y: {
+          stacked: true,
+          ticks: {
+            color: '#5a6080',
+            font: { size: 9, family: 'DM Mono' },
+            callback: v => v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v.toLocaleString('es-AR')
+          },
+          grid: { color: '#1e2230' }
+        }
+      }
+    }
+  });
+}
+
+function countBy(data, key) {
+  return data.reduce((acc, r) => {
+    const v = r[key] || '—';
+    acc[v] = (acc[v] || 0) + 1;
+    return acc;
+  }, {});
+}
+
+function renderPie(id, counts, colors) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id).getContext('2d');
+  charts[id] = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(counts),
+      datasets: [{ data: Object.values(counts), backgroundColor: colors,
+        borderColor: '#13161f', borderWidth: 2 }]
+    },
+    options: {
+      plugins: { legend: { position: 'bottom',
+        labels: { color: '#8a90b0', font: { size: 10, family: 'DM Mono' }, boxWidth: 10, padding: 12 }
+      }},
+      cutout: '65%'
+    }
+  });
+}
+
+function renderBar(id, counts) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id).getContext('2d');
+  const labels = Object.keys(counts).filter(k => k !== '???' && k !== '????');
+  const values = labels.map(k => counts[k]);
+  charts[id] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ data: values, backgroundColor: '#00e5b033',
+        borderColor: '#00e5b0', borderWidth: 1, borderRadius: 4 }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#5a6080', font: { size: 9 } }, grid: { color: '#1e2230' } },
+        y: { ticks: { color: '#8a90b0', font: { size: 10, family: 'DM Mono' } }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+// ── TABLE ───────────────────────────────────────────────
+function sortBy(col) {
+  if (sortCol === col) sortAsc = !sortAsc;
+  else { sortCol = col; sortAsc = true; }
+  renderTable();
+}
+
+function renderTable() {
+  let rows = getFiltered();
+
+  if (sortCol) {
+    rows = [...rows].sort((a, b) => {
+      const av = a[sortCol] || '', bv = b[sortCol] || '';
+      return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+    });
+  }
+
+  document.getElementById('recordCount').textContent =
+    rows.length + ' registros';
+
+  const tbody = document.getElementById('tableBody');
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="11">
+      <div class="empty-state"><div class="big">🔍</div><p>No hay resultados para los filtros aplicados.</p></div>
+    </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map((r, i) => `
+    <tr onclick="openModal(${allData.indexOf(r)})">
+      <td class="mono" style="color:var(--accent)">${esc(r['REF.'])}</td>
+      <td>${esc(truncate(r['SHIPPER'], 28))}</td>
+      <td class="muted-cell">${esc(r['CNEE'])}</td>
+      <td><span class="mono tipo-${(r['TIPO']||'').toLowerCase()}">${esc(r['TIPO'])}</span></td>
+      <td class="muted-cell">${esc(truncate(r['BUQUE / AIR'], 22))}</td>
+      <td>${esc(r['ORIGEN / PUERTO'])}</td>
+      <td class="mono muted-cell">${esc(r['ETD'])}</td>
+      <td class="mono" style="color:var(--accent3)">${esc(r['ETA'])}</td>
+      <td>${estadoBadge(r['ESTADO'])}</td>
+      <td class="mono" style="color:#ffc832">${r['FOB USD'] ? formatMoney(r['FOB USD']) : '<span class="muted-cell">—</span>'}</td>
+      <td class="mono" style="color:var(--accent2)">${r['CIF USD'] ? formatMoney(r['CIF USD']) : '<span class="muted-cell">—</span>'}</td>
+    </tr>
+  `).join('');
+}
+
+// ── MODAL ───────────────────────────────────────────────
+function openModal(idx) {
+  const r = allData[idx];
+  document.getElementById('mRef').textContent   = r['REF.'] || '—';
+  document.getElementById('mTitle').textContent = r['SHIPPER'] || '—';
+
+  document.getElementById('mGrid').innerHTML = [
+    ['CNEE',          r['CNEE']],
+    ['Tipo de carga', r['TIPO']],
+    ['BL / HAWB',     r['BL/HAWB/CRT']],
+    ['Buque / Aire',  r['BUQUE / AIR']],
+    ['Origen/Puerto', r['ORIGEN / PUERTO']],
+    ['ETD',           r['ETD']],
+    ['ETA',           r['ETA']],
+    ['Estado',        r['ESTADO']],
+  ].map(([label, val]) => `
+    <div class="modal-field">
+      <label>${label}</label>
+      <span>${val && val !== '***' ? esc(val) : '—'}</span>
+    </div>`).join('');
+
+  document.getElementById('mFin').innerHTML = [
+    ['FOB USD',      r['FOB USD'],      '#ffc832'],
+    ['CIF USD',      r['CIF USD'],      '#ff6b35'],
+    ['Tributos',     r['TRIBUTOS'],     '#4d9fff'],
+    ['Gastos Impo',  r['GASTOS IMPO'],  '#00e5b0'],
+  ].map(([label, val, color]) => `
+    <div class="fin-item">
+      <label>${label}</label>
+      <span style="color:${color}">${val ? formatMoney(val) : '—'}</span>
+    </div>`).join('');
+
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModalDirect();
+}
+function closeModalDirect() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModalDirect(); });
+
+// ── HELPERS ─────────────────────────────────────────────
+function estadoBadge(estado) {
+  if (!estado) return '<span class="badge badge-gray">—</span>';
+  const u = estado.toUpperCase();
+  if (u.includes('ON BOARD'))   return `<span class="badge badge-blue">${esc(estado)}</span>`;
+  if (u.includes('ARRIBA'))     return `<span class="badge badge-green">${esc(estado)}</span>`;
+  if (u.includes('ESPERANDO'))  return `<span class="badge badge-yellow">${esc(estado)}</span>`;
+  if (u.includes('AGUARDANDO')) return `<span class="badge badge-orange">${esc(estado)}</span>`;
+  return `<span class="badge badge-gray">${esc(estado)}</span>`;
+}
+
+function parseMoney(v) {
+  if (!v) return 0;
+  return parseFloat(String(v).replace(/[^0-9.]/g, '')) || 0;
+}
+
+function formatMoney(v) {
+  const n = parseMoney(v);
+  if (!n) return '—';
+  return n >= 1000000
+    ? (n/1000000).toFixed(1) + 'M'
+    : n.toLocaleString('es-AR');
+}
+
+function formatK(n) {
+  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+  if (n >= 1000)    return (n/1000).toFixed(1) + 'K';
+  return n.toFixed(0);
+}
+
+function truncate(s, n) { return s && s.length > n ? s.slice(0, n) + '…' : (s || ''); }
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>
