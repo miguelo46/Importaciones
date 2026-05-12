@@ -604,6 +604,9 @@
     <select class="filter-select" id="filterCnee" onchange="renderTable()">
       <option value="">Todos los CNEE</option>
     </select>
+    <select class="filter-select" id="filterAnio" onchange="applyAnioFilter()">
+      <option value="">Todos los años</option>
+    </select>
   </div>
 
   <!-- TABLE -->
@@ -626,17 +629,25 @@
             <th onclick="sortBy('SHIPPER')">SHIPPER</th>
             <th onclick="sortBy('CNEE')">CNEE</th>
             <th onclick="sortBy('TIPO')">TIPO</th>
+            <th onclick="sortBy('BL/HAWB/CRT')">BL/HAWB</th>
             <th onclick="sortBy('BUQUE / AIR')">BUQUE / AIR</th>
             <th onclick="sortBy('ORIGEN / PUERTO')">ORIGEN</th>
             <th onclick="sortBy('ETD')">ETD</th>
+            <th onclick="sortBy('FABRICA')">FÁBRICA</th>
             <th onclick="sortBy('ETA')">ETA</th>
             <th onclick="sortBy('ESTADO')">ESTADO</th>
+            <th onclick="sortBy('PAGO')">PAGO</th>
+            <th onclick="sortBy('STATUS ETA')">STATUS ETA</th>
+            <th onclick="sortBy('_leadtime')">LEAD TIME</th>
             <th onclick="sortBy('FOB USD')">FOB USD</th>
             <th onclick="sortBy('CIF USD')">CIF USD</th>
+            <th onclick="sortBy('TRIBUTOS')">TRIBUTOS AR$</th>
+            <th onclick="sortBy('GASTOS IMPO')">GASTOS AR$</th>
+            <th onclick="sortBy('COSTO TOTAL')">COSTO TOTAL</th>
           </tr>
         </thead>
         <tbody id="tableBody">
-          <tr><td colspan="11">
+          <tr><td colspan="19">
             <div class="empty-state">
               <div class="big">📦</div>
               <p>Cargá los datos usando el botón <strong>↻ Actualizar</strong><br>o esperá a que carguen automáticamente.</p>
@@ -664,62 +675,17 @@
 // ── CONFIG ──────────────────────────────────────────────
 const SHEET_ID_DEFAULT = '1oO6weop_-n_xRhTFP51clm1MANmawiKIyBlVM_WhvpQ';
 
-// Datos embebidos como fallback (tus datos reales)
 const FALLBACK_DATA = [
-  {
-    'REF.': 'CAI000124', 'SHIPPER': 'SQUARE APPAREL LTD', 'CNEE': 'TEJICA S.A.',
-    'ORDER NO.': '***', 'AÑO': '2026', 'TIPO': 'AIR', 'BL/HAWB/CRT': 'ALLA2600029',
-    'BUQUE / AIR': 'AIR', 'ORIGEN / PUERTO': 'DHAKA', 'ETD': '24/2/2026', 'ETA': '4/3/2026',
-    'ESTADO': 'ARRIBADO / PAGO PENDIENTE', 'FOB USD': '', 'CIF USD': '', 'TRIBUTOS': '', 'GASTOS IMPO': ''
-  },
-  {
-    'REF.': 'CMI000394', 'SHIPPER': 'China Xinxing Xiamen Imp.&Exp. Co., Ltd', 'CNEE': 'VARENNA SRL',
-    'ORDER NO.': '***', 'AÑO': '2026', 'TIPO': 'FCL', 'BL/HAWB/CRT': 'BGT26040020',
-    'BUQUE / AIR': 'SAN ANTONIO MAERSK', 'ORIGEN / PUERTO': 'SHANGHAI', 'ETD': '8/2/2026', 'ETA': '12/4/2026',
-    'ESTADO': 'ON BOARD', 'FOB USD': '20496', 'CIF USD': '30193.72', 'TRIBUTOS': '33813600', 'GASTOS IMPO': '31420364'
-  },
-  {
-    'REF.': 'CMI000408', 'SHIPPER': 'PALMIYE DOKUMA', 'CNEE': 'TEJICA S.A.',
-    'ORDER NO.': '***', 'AÑO': '2026', 'TIPO': 'LCL', 'BL/HAWB/CRT': '32629963',
-    'BUQUE / AIR': 'MSC AMALFI', 'ORIGEN / PUERTO': 'ISTAMBUL', 'ETD': '19/2/2026', 'ETA': '20/4/2026',
-    'ESTADO': 'ON BOARD', 'FOB USD': '15000', 'CIF USD': '18000', 'TRIBUTOS': '20000000', 'GASTOS IMPO': '5000000'
-  },
-  {
-    'REF.': 'CMI000398', 'SHIPPER': 'OGUZTEKSTIL', 'CNEE': 'TEJICA S.A.',
-    'ORDER NO.': '***', 'AÑO': '2026', 'TIPO': 'FCL', 'BL/HAWB/CRT': '***',
-    'BUQUE / AIR': 'MSC CORUNA', 'ORIGEN / PUERTO': 'TURQUIA', 'ETD': '5/4/2026', 'ETA': '4/5/2026',
-    'ESTADO': 'AGUARDANDO CONFIRMACION DE BOOKING', 'FOB USD': '', 'CIF USD': '', 'TRIBUTOS': '', 'GASTOS IMPO': ''
-  },
-  {
-    'REF.': 'CMI000410', 'SHIPPER': 'CARREMAN CO., LTD', 'CNEE': 'TEJICA S.A.',
-    'ORDER NO.': '***', 'AÑO': '2026', 'TIPO': 'LCL', 'BL/HAWB/CRT': 'BL',
-    'BUQUE / AIR': '***', 'ORIGEN / PUERTO': 'CONSTANTA', 'ETD': '***', 'ETA': '***',
-    'ESTADO': 'ESPERANDO OK PARA EMBARCAR', 'FOB USD': '', 'CIF USD': '', 'TRIBUTOS': '', 'GASTOS IMPO': ''
-  },
-  {
-    'REF.': 'CMI000401', 'SHIPPER': 'SQUARE APPAREL LTD', 'CNEE': 'TEJICA S.A.',
-    'ORDER NO.': '***', 'AÑO': '2026', 'TIPO': 'LCL', 'BL/HAWB/CRT': 'BL',
-    'BUQUE / AIR': '***', 'ORIGEN / PUERTO': 'Chattogram', 'ETD': '***', 'ETA': '***',
-    'ESTADO': 'ESPERANDO OK PARA EMBARCAR', 'FOB USD': '', 'CIF USD': '', 'TRIBUTOS': '', 'GASTOS IMPO': ''
-  },
-  {
-    'REF.': 'CMI000406', 'SHIPPER': 'RAJAPALAYAM MILLS', 'CNEE': 'TEJICA S.A.',
-    'ORDER NO.': '***', 'AÑO': '2026', 'TIPO': 'LCL', 'BL/HAWB/CRT': 'BL',
-    'BUQUE / AIR': '***', 'ORIGEN / PUERTO': '???', 'ETD': '***', 'ETA': '***',
-    'ESTADO': 'ESPERANDO OK PARA EMBARCAR', 'FOB USD': '', 'CIF USD': '', 'TRIBUTOS': '', 'GASTOS IMPO': ''
-  },
-  {
-    'REF.': '***', 'SHIPPER': 'DAGiULiO GROUP', 'CNEE': 'TEJICA S.A.',
-    'ORDER NO.': '***', 'AÑO': '2026', 'TIPO': '????', 'BL/HAWB/CRT': '***',
-    'BUQUE / AIR': '***', 'ORIGEN / PUERTO': '????', 'ETD': '***', 'ETA': '***',
-    'ESTADO': 'ESPERANDO OK PARA EMBARCAR', 'FOB USD': '', 'CIF USD': '', 'TRIBUTOS': '', 'GASTOS IMPO': ''
-  },
-  {
-    'REF.': '***', 'SHIPPER': 'MARNICO', 'CNEE': 'TEJICA S.A.',
-    'ORDER NO.': '***', 'AÑO': '2026', 'TIPO': '????', 'BL/HAWB/CRT': '***',
-    'BUQUE / AIR': '***', 'ORIGEN / PUERTO': '????', 'ETD': '***', 'ETA': '***',
-    'ESTADO': 'ESPERANDO OK PARA EMBARCAR', 'FOB USD': '', 'CIF USD': '', 'TRIBUTOS': '', 'GASTOS IMPO': ''
-  }
+  { 'REF.': 'CAI000124', 'SHIPPER': 'SQUARE APPAREL LTD', 'CNEE': 'TEJICA S.A.', 'ORDER NO.': '***', 'AÑO': '2026', 'TIPO': 'AIR', 'BL/HAWB/CRT': 'ALLA2600029', 'BUQUE / AIR': 'AIR', 'ORIGEN / PUERTO': 'DHAKA', 'ETD': '24/02/2026', 'FABRICA': '', 'ETA': '4/03/2026', 'ESTADO': 'ARRIBADO', 'PAGO': 'PAGADO', 'FOB USD': '', 'CIF USD': '', 'TRIBUTOS': '', 'GASTOS IMPO': '', 'COSTO TOTAL': '0', 'STATUS ETA': 'ARRIBADO' },
+  { 'REF.': 'CMI000394', 'SHIPPER': 'China Xinxing Xiamen Imp.&Exp. Co., Ltd', 'CNEE': 'VARENNA SRL', 'ORDER NO.': '***', 'AÑO': '2026', 'TIPO': 'FCL', 'BL/HAWB/CRT': 'BGT26040020', 'BUQUE / AIR': 'SAN ANTONIO MAERSK', 'ORIGEN / PUERTO': 'SHANGHAI', 'ETD': '8/02/2026', 'FABRICA': '', 'ETA': '12/04/2026', 'ESTADO': 'ARRIBADO', 'PAGO': '', 'FOB USD': '20496', 'CIF USD': '30193.72', 'TRIBUTOS': '33813600', 'GASTOS IMPO': '31420364', 'COSTO TOTAL': '65264158', 'STATUS ETA': 'ARRIBADO' },
+  { 'REF.': 'CMI000408', 'SHIPPER': 'PALMIYE DOKUMA', 'CNEE': 'TEJICA S.A.', 'ORDER NO.': '***', 'AÑO': '2026', 'TIPO': 'LCL', 'BL/HAWB/CRT': '32629963', 'BUQUE / AIR': 'MSC AMALFI', 'ORIGEN / PUERTO': 'ISTAMBUL', 'ETD': '19/02/2026', 'FABRICA': '', 'ETA': '20/04/2026', 'ESTADO': 'ARRIBADO', 'PAGO': '', 'FOB USD': '15000', 'CIF USD': '18000', 'TRIBUTOS': '20000000', 'GASTOS IMPO': '5000000', 'COSTO TOTAL': '25018000', 'STATUS ETA': 'ARRIBADO' },
+  { 'REF.': 'CMI000398', 'SHIPPER': 'OGUZTEKSTIL', 'CNEE': 'TEJICA S.A.', 'ORDER NO.': '***', 'AÑO': '2026', 'TIPO': 'FCL', 'BL/HAWB/CRT': 'IFF2600897EXSH', 'BUQUE / AIR': 'MSC INSA', 'ORIGEN / PUERTO': 'TURQUIA', 'ETD': '9/04/2026', 'FABRICA': '', 'ETA': '15/05/2026', 'ESTADO': 'IN TRANSIT', 'PAGO': '', 'FOB USD': '', 'CIF USD': '', 'TRIBUTOS': '', 'GASTOS IMPO': '', 'COSTO TOTAL': '0', 'STATUS ETA': 'PRÓXIMO ARRIBO' },
+  { 'REF.': 'CMI000410', 'SHIPPER': 'CARREMAN CO., LTD', 'CNEE': 'TEJICA S.A.', 'ORDER NO.': '***', 'AÑO': '2026', 'TIPO': 'LCL', 'BL/HAWB/CRT': '29187385', 'BUQUE / AIR': 'MSC LEILA', 'ORIGEN / PUERTO': 'CONSTANTA', 'ETD': '28/05/2026', 'FABRICA': '', 'ETA': '27/06/2026', 'ESTADO': 'ESPERANDO OK PARA EMBARCAR', 'PAGO': '', 'FOB USD': '', 'CIF USD': '', 'TRIBUTOS': '', 'GASTOS IMPO': '', 'COSTO TOTAL': '0', 'STATUS ETA': 'EN TIEMPO' },
+  { 'REF.': 'CMI000418', 'SHIPPER': 'IPEKIS', 'CNEE': 'TEJICA S.A.', 'ORDER NO.': '***', 'AÑO': '2026', 'TIPO': 'LCL', 'BL/HAWB/CRT': '32631012', 'BUQUE / AIR': 'LODUR', 'ORIGEN / PUERTO': 'TURQUIA', 'ETD': '25/04/2026', 'FABRICA': '', 'ETA': '24/05/2026', 'ESTADO': 'IN TRANSIT', 'PAGO': '', 'FOB USD': '', 'CIF USD': '', 'TRIBUTOS': '', 'GASTOS IMPO': '', 'COSTO TOTAL': '0', 'STATUS ETA': 'EN TIEMPO' },
+  { 'REF.': 'CMI000401', 'SHIPPER': 'SQUARE APPAREL LTD', 'CNEE': 'TEJICA S.A.', 'ORDER NO.': '***', 'AÑO': '2026', 'TIPO': 'LCL', 'BL/HAWB/CRT': 'BL', 'BUQUE / AIR': '***', 'ORIGEN / PUERTO': 'Chattogram', 'ETD': '', 'FABRICA': '', 'ETA': '', 'ESTADO': 'ESPERANDO OK PARA EMBARCAR', 'PAGO': '', 'FOB USD': '', 'CIF USD': '', 'TRIBUTOS': '', 'GASTOS IMPO': '', 'COSTO TOTAL': '0', 'STATUS ETA': 'SIN ETA' },
+  { 'REF.': 'CMI000406', 'SHIPPER': 'RAJAPALAYAM MILS', 'CNEE': 'TEJICA S.A.', 'ORDER NO.': '***', 'AÑO': '2026', 'TIPO': 'LCL', 'BL/HAWB/CRT': 'BL', 'BUQUE / AIR': '***', 'ORIGEN / PUERTO': '???', 'ETD': '', 'FABRICA': '', 'ETA': '', 'ESTADO': 'ESPERANDO OK PARA EMBARCAR', 'PAGO': '', 'FOB USD': '', 'CIF USD': '', 'TRIBUTOS': '', 'GASTOS IMPO': '', 'COSTO TOTAL': '0', 'STATUS ETA': 'SIN ETA' },
+  { 'REF.': 'CMI000434', 'SHIPPER': 'DAGiULiO GROUP', 'CNEE': 'TEJICA S.A.', 'ORDER NO.': '***', 'AÑO': '2026', 'TIPO': 'LCL', 'BL/HAWB/CRT': '***', 'BUQUE / AIR': '***', 'ORIGEN / PUERTO': 'BARCELONA', 'ETD': '', 'FABRICA': '', 'ETA': '', 'ESTADO': 'ESPERANDO OK PARA EMBARCAR', 'PAGO': '', 'FOB USD': '', 'CIF USD': '', 'TRIBUTOS': '', 'GASTOS IMPO': '', 'COSTO TOTAL': '0', 'STATUS ETA': 'SIN ETA' },
+  { 'REF.': '***', 'SHIPPER': 'MARNICO', 'CNEE': 'TEJICA S.A.', 'ORDER NO.': '***', 'AÑO': '2026', 'TIPO': '????', 'BL/HAWB/CRT': '***', 'BUQUE / AIR': '***', 'ORIGEN / PUERTO': '????', 'ETD': '', 'FABRICA': '', 'ETA': '', 'ESTADO': 'ESPERANDO OK PARA EMBARCAR', 'PAGO': '', 'FOB USD': '', 'CIF USD': '', 'TRIBUTOS': '', 'GASTOS IMPO': '', 'COSTO TOTAL': '0', 'STATUS ETA': 'SIN ETA' }
 ];
 
 // ── STATE ────────────────────────────────────────────────
@@ -776,10 +742,12 @@ function populateFilters() {
   const estados = [...new Set(allData.map(r => r['ESTADO']).filter(Boolean))].sort();
   const tipos   = [...new Set(allData.map(r => r['TIPO']).filter(Boolean))].sort();
   const cnees   = [...new Set(allData.map(r => r['CNEE']).filter(Boolean))].sort();
+  const anios   = [...new Set(allData.map(r => r['AÑO']).filter(Boolean))].sort();
 
   fillSelect('filterEstado', estados);
   fillSelect('filterTipo', tipos);
   fillSelect('filterCnee', cnees);
+  fillSelect('filterAnio', anios);
 }
 
 function fillSelect(id, values) {
@@ -794,32 +762,40 @@ function fillSelect(id, values) {
   sel.value = cur;
 }
 
+// Filtro de año afecta tabla Y gráficos
+function applyAnioFilter() {
+  renderTable();
+  renderKPIs();
+  renderCharts();
+}
+
 function getFiltered() {
-  const search  = document.getElementById('searchInput').value.toLowerCase();
-  const estado  = document.getElementById('filterEstado').value;
-  const tipo    = document.getElementById('filterTipo').value;
-  const cnee    = document.getElementById('filterCnee').value;
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const estado = document.getElementById('filterEstado').value;
+  const tipo   = document.getElementById('filterTipo').value;
+  const cnee   = document.getElementById('filterCnee').value;
+  const anio   = document.getElementById('filterAnio').value;
 
   return allData.filter(r => {
     const txt = Object.values(r).join(' ').toLowerCase();
-    return (!search  || txt.includes(search))
-        && (!estado  || r['ESTADO'] === estado)
-        && (!tipo    || r['TIPO']   === tipo)
-        && (!cnee    || r['CNEE']   === cnee);
+    return (!search || txt.includes(search))
+        && (!estado || r['ESTADO'] === estado)
+        && (!tipo   || r['TIPO']   === tipo)
+        && (!cnee   || r['CNEE']   === cnee)
+        && (!anio   || r['AÑO']    === anio);
   });
 }
 
 // ── KPIs ────────────────────────────────────────────────
 function renderKPIs() {
-  const d = allData;
-  const onBoard    = d.filter(r => r['ESTADO']?.toUpperCase().includes('ON BOARD')).length;
+  const d = getFiltered();
+  const onBoard    = d.filter(r => r['ESTADO']?.toUpperCase().includes('IN TRANSIT') || r['ESTADO']?.toUpperCase().includes('ON BOARD')).length;
   const pendientes = d.filter(r => r['ESTADO']?.toUpperCase().includes('ESPERANDO') || r['ESTADO']?.toUpperCase().includes('AGUARDANDO')).length;
   const arribados  = d.filter(r => r['ESTADO']?.toUpperCase().includes('ARRIBA')).length;
 
   const fob = d.reduce((s, r) => s + parseMoney(r['FOB USD']), 0);
   const cif = d.reduce((s, r) => s + parseMoney(r['CIF USD']), 0);
 
-  // Embarques no arribados = todos menos los que tienen ARRIBA en el estado
   const noArribados = d.filter(r => !r['ESTADO']?.toUpperCase().includes('ARRIBA'));
   const tributos = noArribados.reduce((s, r) => s + parseMoney(r['TRIBUTOS']), 0);
   const gastos   = noArribados.reduce((s, r) => s + parseMoney(r['GASTOS IMPO']), 0);
@@ -836,12 +812,13 @@ function renderKPIs() {
 
 // ── CHARTS ──────────────────────────────────────────────
 function renderCharts() {
-  renderPie('chartEstado', countBy(allData, 'ESTADO'),
+  const d = getFiltered();
+  renderPie('chartEstado', countBy(d, 'ESTADO'),
     ['#0077cc','#00a878','#e8530a','#f0a500','#9b59b6','#e05cf7']);
-  renderPie('chartTipo', countBy(allData, 'TIPO'),
+  renderPie('chartTipo', countBy(d, 'TIPO'),
     ['#0077cc','#00a878','#e8530a','#f0a500']);
-  renderBar('chartOrigen', countBy(allData, 'ORIGEN / PUERTO'));
-  renderGastosPorSemana();
+  renderBar('chartOrigen', countBy(d, 'ORIGEN / PUERTO'));
+  renderGastosPorSemana(d);
 }
 
 // ── GASTOS POR SEMANA DE ETA ─────────────────────────────
@@ -863,9 +840,10 @@ function getWeekLabel(date) {
   return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
 }
 
-function renderGastosPorSemana() {
+function renderGastosPorSemana(data) {
+  const d = data || getFiltered();
   // Solo embarques no arribados con ETA válida
-  const noArrib = allData.filter(r =>
+  const noArrib = d.filter(r =>
     !r['ESTADO']?.toUpperCase().includes('ARRIBA') &&
     parseDate(r['ETA'])
   );
@@ -1004,6 +982,15 @@ function renderBar(id, counts) {
   });
 }
 
+// ── LEAD TIME CALCULADO (FABRICA - ETD) ─────────────────
+function calcLeadTime(r) {
+  const fabrica = parseDate(r['FABRICA']);
+  const etd     = parseDate(r['ETD']);
+  if (!fabrica || !etd) return null;
+  const diff = Math.round((etd - fabrica) / (1000 * 60 * 60 * 24));
+  return diff >= 0 ? diff : null;
+}
+
 // ── TABLE ───────────────────────────────────────────────
 function sortBy(col) {
   if (sortCol === col) sortAsc = !sortAsc;
@@ -1016,42 +1003,66 @@ function renderTable() {
 
   if (sortCol) {
     rows = [...rows].sort((a, b) => {
-      const av = a[sortCol] || '', bv = b[sortCol] || '';
-      return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+      const av = sortCol === '_leadtime' ? (calcLeadTime(a) ?? 9999) : (a[sortCol] || '');
+      const bv = sortCol === '_leadtime' ? (calcLeadTime(b) ?? 9999) : (b[sortCol] || '');
+      if (typeof av === 'number') return sortAsc ? av - bv : bv - av;
+      return sortAsc ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
     });
   }
 
-  document.getElementById('recordCount').textContent =
-    rows.length + ' registros';
+  document.getElementById('recordCount').textContent = rows.length + ' registros';
 
   const tbody = document.getElementById('tableBody');
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="11">
+    tbody.innerHTML = `<tr><td colspan="19">
       <div class="empty-state"><div class="big">🔍</div><p>No hay resultados para los filtros aplicados.</p></div>
     </td></tr>`;
     return;
   }
 
-  tbody.innerHTML = rows.map((r, i) => `
+  tbody.innerHTML = rows.map(r => {
+    const lt = calcLeadTime(r);
+    const ltCell = lt !== null
+      ? `<span class="mono" style="color:#0077cc">${lt} días</span>`
+      : `<span class="muted-cell">—</span>`;
+
+    const statusColor = {
+      'ARRIBADO':       '#00875a',
+      'EN TIEMPO':      '#0077cc',
+      'PRÓXIMO ARRIBO': '#f0a500',
+      'SIN ETA':        '#7a82a0',
+    }[r['STATUS ETA']] || '#7a82a0';
+
+    return `
     <tr onclick="openModal(${allData.indexOf(r)})">
-      <td class="mono" style="color:var(--accent)">${esc(r['REF.'])}</td>
-      <td>${esc(truncate(r['SHIPPER'], 28))}</td>
+      <td class="mono" style="color:var(--accent);white-space:nowrap">${esc(r['REF.'])}</td>
+      <td style="min-width:160px">${esc(truncate(r['SHIPPER'], 30))}</td>
       <td class="muted-cell">${esc(r['CNEE'])}</td>
       <td><span class="mono tipo-${(r['TIPO']||'').toLowerCase()}">${esc(r['TIPO'])}</span></td>
-      <td class="muted-cell">${esc(truncate(r['BUQUE / AIR'], 22))}</td>
+      <td class="mono muted-cell" style="min-width:120px">${esc(r['BL/HAWB/CRT'] !== '***' ? r['BL/HAWB/CRT'] : '—')}</td>
+      <td style="min-width:140px">${esc(truncate(r['BUQUE / AIR'], 20))}</td>
       <td>${esc(r['ORIGEN / PUERTO'])}</td>
-      <td class="mono muted-cell">${esc(r['ETD'])}</td>
-      <td class="mono" style="color:var(--accent3)">${esc(r['ETA'])}</td>
+      <td class="mono muted-cell">${esc(r['ETD'] || '—')}</td>
+      <td class="mono muted-cell">${esc(r['FABRICA'] || '—')}</td>
+      <td class="mono" style="color:var(--accent3)">${esc(r['ETA'] || '—')}</td>
       <td>${estadoBadge(r['ESTADO'])}</td>
-      <td class="mono" style="color:#ffc832">${r['FOB USD'] ? formatMoney(r['FOB USD']) : '<span class="muted-cell">—</span>'}</td>
+      <td class="mono" style="color:${r['PAGO'] === 'PAGADO' ? '#00875a' : '#7a82a0'}">${esc(r['PAGO'] || '—')}</td>
+      <td><span class="mono" style="color:${statusColor};font-size:11px">${esc(r['STATUS ETA'] || '—')}</span></td>
+      <td>${ltCell}</td>
+      <td class="mono" style="color:#f0a500">${r['FOB USD'] ? formatMoney(r['FOB USD']) : '<span class="muted-cell">—</span>'}</td>
       <td class="mono" style="color:var(--accent2)">${r['CIF USD'] ? formatMoney(r['CIF USD']) : '<span class="muted-cell">—</span>'}</td>
-    </tr>
-  `).join('');
+      <td class="mono" style="color:#0077cc">${r['TRIBUTOS'] ? formatMoney(r['TRIBUTOS']) : '<span class="muted-cell">—</span>'}</td>
+      <td class="mono" style="color:#9b59b6">${r['GASTOS IMPO'] ? formatMoney(r['GASTOS IMPO']) : '<span class="muted-cell">—</span>'}</td>
+      <td class="mono" style="color:#00875a">${r['COSTO TOTAL'] && r['COSTO TOTAL'] !== '0' ? formatMoney(r['COSTO TOTAL']) : '<span class="muted-cell">—</span>'}</td>
+    </tr>`
+  }).join('');
 }
 
 // ── MODAL ───────────────────────────────────────────────
 function openModal(idx) {
   const r = allData[idx];
+  const lt = calcLeadTime(r);
+
   document.getElementById('mRef').textContent   = r['REF.'] || '—';
   document.getElementById('mTitle').textContent = r['SHIPPER'] || '—';
 
@@ -1062,8 +1073,12 @@ function openModal(idx) {
     ['Buque / Aire',  r['BUQUE / AIR']],
     ['Origen/Puerto', r['ORIGEN / PUERTO']],
     ['ETD',           r['ETD']],
+    ['Fábrica',       r['FABRICA']],
     ['ETA',           r['ETA']],
+    ['Lead Time',     lt !== null ? lt + ' días' : null],
     ['Estado',        r['ESTADO']],
+    ['Status ETA',    r['STATUS ETA']],
+    ['Pago',          r['PAGO']],
   ].map(([label, val]) => `
     <div class="modal-field">
       <label>${label}</label>
@@ -1071,14 +1086,15 @@ function openModal(idx) {
     </div>`).join('');
 
   document.getElementById('mFin').innerHTML = [
-    ['FOB USD',      r['FOB USD'],      '#ffc832'],
-    ['CIF USD',      r['CIF USD'],      '#ff6b35'],
-    ['Tributos',     r['TRIBUTOS'],     '#4d9fff'],
-    ['Gastos Impo',  r['GASTOS IMPO'],  '#00e5b0'],
+    ['FOB USD',      r['FOB USD'],      '#f0a500'],
+    ['CIF USD',      r['CIF USD'],      '#e8530a'],
+    ['Tributos AR$', r['TRIBUTOS'],     '#0077cc'],
+    ['Gastos AR$',   r['GASTOS IMPO'],  '#9b59b6'],
+    ['Costo Total',  r['COSTO TOTAL'],  '#00875a'],
   ].map(([label, val, color]) => `
     <div class="fin-item">
       <label>${label}</label>
-      <span style="color:${color}">${val ? formatMoney(val) : '—'}</span>
+      <span style="color:${color}">${val && val !== '0' ? formatMoney(val) : '—'}</span>
     </div>`).join('');
 
   document.getElementById('modalOverlay').classList.add('open');
