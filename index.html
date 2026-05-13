@@ -340,8 +340,9 @@
     font-weight: 500;
   }
 
-  .badge-green  { background: #e6f7f2; color: #00875a; border: 1px solid #b3e8d8; }
-  .badge-blue   { background: #e6f2fc; color: #0055aa; border: 1px solid #b3d4f5; }
+  .badge-green    { background: #e6f7f2; color: #00875a; border: 1px solid #b3e8d8; }
+  .badge-liberado { background: #003d26; color: #00e87a; border: 1px solid #00875a; }
+  .badge-blue     { background: #e6f2fc; color: #0055aa; border: 1px solid #b3d4f5; }
   .badge-orange { background: #fff0ea; color: #c04a00; border: 1px solid #f5c9b0; }
   .badge-gray   { background: #f0f2f7; color: #5a6080; border: 1px solid #d0d5e8; }
   .badge-yellow { background: #fffae6; color: #8a6000; border: 1px solid #f5e0a0; }
@@ -542,12 +543,17 @@
       <div class="kpi-value" id="kpiPendientes">—</div>
       <div class="kpi-desc">esperando embarque</div>
     </div>
-    <div class="kpi" style="--kpi-color: #00e5b0">
+    <div class="kpi" style="--kpi-color: #00875a">
       <div class="kpi-label">Arribados</div>
       <div class="kpi-value" id="kpiArribados">—</div>
-      <div class="kpi-desc">en destino</div>
+      <div class="kpi-desc">sin liberar</div>
     </div>
-    <div class="kpi" style="--kpi-color: #ffc832">
+    <div class="kpi" style="--kpi-color: #0077cc">
+      <div class="kpi-label">Liberados</div>
+      <div class="kpi-value" id="kpiLiberados">—</div>
+      <div class="kpi-desc">pagados y retirados</div>
+    </div>
+    <div class="kpi" style="--kpi-color: #f0a500">
       <div class="kpi-label">FOB Total</div>
       <div class="kpi-value" id="kpiFob">—</div>
       <div class="kpi-desc">USD</div>
@@ -560,12 +566,12 @@
     <div class="kpi" style="--kpi-color: #4d9fff">
       <div class="kpi-label">Tributos</div>
       <div class="kpi-value" id="kpiTributos">—</div>
-      <div class="kpi-desc">embarques no arribados</div>
+      <div class="kpi-desc">AR$ — pago pendiente</div>
     </div>
     <div class="kpi" style="--kpi-color: #e05cf7">
       <div class="kpi-label">Gastos Impo</div>
       <div class="kpi-value" id="kpiGastos">—</div>
-      <div class="kpi-desc">embarques no arribados</div>
+      <div class="kpi-desc">AR$ — pago pendiente</div>
     </div>
   </div>
 
@@ -587,7 +593,7 @@
 
   <!-- CHART GASTOS POR SEMANA ETA -->
   <div class="chart-card" style="margin-bottom: 32px;">
-    <div class="chart-title">Tributos + Gastos Impo por semana de ETA — embarques no arribados</div>
+    <div class="chart-title">Tributos + Gastos Impo por semana de ETA — pago pendiente</div>
     <div class="chart-wrap" style="height: 240px;"><canvas id="chartGastosSemana"></canvas></div>
   </div>
 
@@ -789,21 +795,24 @@ function getFiltered() {
 // ── KPIs ────────────────────────────────────────────────
 function renderKPIs() {
   const d = getFiltered();
-  const onBoard    = d.filter(r => r['ESTADO']?.toUpperCase().includes('IN TRANSIT') || r['ESTADO']?.toUpperCase().includes('ON BOARD')).length;
+  const inTransit  = d.filter(r => r['ESTADO']?.toUpperCase().includes('IN TRANSIT') || r['ESTADO']?.toUpperCase().includes('ON BOARD')).length;
   const pendientes = d.filter(r => r['ESTADO']?.toUpperCase().includes('ESPERANDO') || r['ESTADO']?.toUpperCase().includes('AGUARDANDO')).length;
-  const arribados  = d.filter(r => r['ESTADO']?.toUpperCase().includes('ARRIBA')).length;
+  const arribados  = d.filter(r => r['ESTADO']?.toUpperCase().includes('ARRIBA') && !r['ESTADO']?.toUpperCase().includes('LIBERA')).length;
+  const liberados  = d.filter(r => r['ESTADO']?.toUpperCase().includes('LIBERA')).length;
 
   const fob = d.reduce((s, r) => s + parseMoney(r['FOB USD']), 0);
   const cif = d.reduce((s, r) => s + parseMoney(r['CIF USD']), 0);
 
-  const noArribados = d.filter(r => !r['ESTADO']?.toUpperCase().includes('ARRIBA'));
-  const tributos = noArribados.reduce((s, r) => s + parseMoney(r['TRIBUTOS']), 0);
-  const gastos   = noArribados.reduce((s, r) => s + parseMoney(r['GASTOS IMPO']), 0);
+  // Pendientes de pago = PAGO !== PAGADO
+  const sinPagar = d.filter(r => r['PAGO']?.toUpperCase() !== 'PAGADO');
+  const tributos = sinPagar.reduce((s, r) => s + parseMoney(r['TRIBUTOS']), 0);
+  const gastos   = sinPagar.reduce((s, r) => s + parseMoney(r['GASTOS IMPO']), 0);
 
   document.getElementById('kpiTotal').textContent      = d.length;
-  document.getElementById('kpiOnBoard').textContent    = onBoard;
+  document.getElementById('kpiOnBoard').textContent    = inTransit;
   document.getElementById('kpiPendientes').textContent = pendientes;
   document.getElementById('kpiArribados').textContent  = arribados;
+  document.getElementById('kpiLiberados').textContent  = liberados;
   document.getElementById('kpiFob').textContent        = fob ? formatK(fob) : '—';
   document.getElementById('kpiCif').textContent        = cif ? formatK(cif) : '—';
   document.getElementById('kpiTributos').textContent   = tributos ? formatK(tributos) : '—';
@@ -842,15 +851,15 @@ function getWeekLabel(date) {
 
 function renderGastosPorSemana(data) {
   const d = data || getFiltered();
-  // Solo embarques no arribados con ETA válida
-  const noArrib = d.filter(r =>
-    !r['ESTADO']?.toUpperCase().includes('ARRIBA') &&
+  // Pendientes de pago = PAGO !== PAGADO, con ETA válida
+  const sinPagar = d.filter(r =>
+    r['PAGO']?.toUpperCase() !== 'PAGADO' &&
     parseDate(r['ETA'])
   );
 
   // Agrupar por semana
   const semanas = {};
-  noArrib.forEach(r => {
+  sinPagar.forEach(r => {
     const dt = parseDate(r['ETA']);
     if (!dt) return;
     const label = getWeekLabel(dt);
@@ -1112,6 +1121,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModalDi
 function estadoBadge(estado) {
   if (!estado) return '<span class="badge badge-gray">—</span>';
   const u = estado.toUpperCase();
+  if (u.includes('LIBERA'))                                return `<span class="badge badge-liberado">${esc(estado)}</span>`;
   if (u.includes('IN TRANSIT') || u.includes('ON BOARD')) return `<span class="badge badge-blue">${esc(estado)}</span>`;
   if (u.includes('ARRIBA'))                                return `<span class="badge badge-green">${esc(estado)}</span>`;
   if (u.includes('ESPERANDO'))                             return `<span class="badge badge-yellow">${esc(estado)}</span>`;
