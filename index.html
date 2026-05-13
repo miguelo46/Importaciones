@@ -491,6 +491,102 @@
 
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  /* ── PERFORMANCE METRICS ── */
+  .perf-section {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px;
+    margin-bottom: 32px;
+  }
+
+  .perf-title {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .perf-title span:first-child {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .perf-note {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    opacity: .7;
+  }
+
+  .perf-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .perf-cell {
+    background: var(--card-bg);
+    padding: 14px 20px;
+  }
+
+  .perf-header-blank { background: var(--bg); }
+
+  .perf-header {
+    background: var(--bg);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .perf-n {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  .perf-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .perf-formula {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  .perf-stat {
+    font-family: 'DM Mono', monospace;
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--accent);
+  }
+
+  .perf-stat .std {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .perf-stat .insuf {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'Syne', sans-serif;
+  }
+
   /* ── SCROLLBAR ── */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
@@ -575,6 +671,32 @@
     </div>
   </div>
 
+  <!-- MÉTRICAS DE PERFORMANCE -->
+  <div class="perf-section">
+    <div class="perf-title">
+      <span>MÉTRICAS DE PERFORMANCE</span>
+      <span class="perf-note">media ± desvío estándar (días) · solo embarques con fechas completas</span>
+    </div>
+    <div class="perf-grid">
+      <!-- Headers -->
+      <div class="perf-cell perf-header-blank"></div>
+      <div class="perf-cell perf-header">🚢 Marítimo<span class="perf-n" id="perfNMar"></span></div>
+      <div class="perf-cell perf-header">✈ Aéreo<span class="perf-n" id="perfNAir"></span></div>
+      <!-- Transit Time -->
+      <div class="perf-cell perf-label">Transit Time<div class="perf-formula">ETA − ETD</div></div>
+      <div class="perf-cell perf-stat" id="perfTT_mar">—</div>
+      <div class="perf-cell perf-stat" id="perfTT_air">—</div>
+      <!-- Tiempo en Aduana -->
+      <div class="perf-cell perf-label">Tiempo en Aduana<div class="perf-formula">FÁBRICA − ETA</div></div>
+      <div class="perf-cell perf-stat" id="perfAD_mar">—</div>
+      <div class="perf-cell perf-stat" id="perfAD_air">—</div>
+      <!-- Lead Time -->
+      <div class="perf-cell perf-label">Lead Time<div class="perf-formula">FÁBRICA − ETD</div></div>
+      <div class="perf-cell perf-stat" id="perfLT_mar">—</div>
+      <div class="perf-cell perf-stat" id="perfLT_air">—</div>
+    </div>
+  </div>
+
   <!-- CHARTS -->
   <div class="charts-row">
     <div class="chart-card">
@@ -600,17 +722,17 @@
   <!-- FILTERS -->
   <div class="filters-row">
     <span class="filter-label">Filtrar:</span>
-    <input class="search-input" id="searchInput" type="text" placeholder="Buscar ref, shipper, origen…" oninput="renderTable()">
-    <select class="filter-select" id="filterEstado" onchange="renderTable()">
+    <input class="search-input" id="searchInput" type="text" placeholder="Buscar ref, shipper, origen…" oninput="applyFilters()">
+    <select class="filter-select" id="filterEstado" onchange="applyFilters()">
       <option value="">Todos los estados</option>
     </select>
-    <select class="filter-select" id="filterTipo" onchange="renderTable()">
+    <select class="filter-select" id="filterTipo" onchange="applyFilters()">
       <option value="">Todos los tipos</option>
     </select>
-    <select class="filter-select" id="filterCnee" onchange="renderTable()">
+    <select class="filter-select" id="filterCnee" onchange="applyFilters()">
       <option value="">Todos los CNEE</option>
     </select>
-    <select class="filter-select" id="filterAnio" onchange="applyAnioFilter()">
+    <select class="filter-select" id="filterAnio" onchange="applyFilters()">
       <option value="">Todos los años</option>
     </select>
   </div>
@@ -740,6 +862,7 @@ function finishLoad() {
   populateFilters();
   renderKPIs();
   renderCharts();
+  renderPerformanceMetrics();
   renderTable();
 }
 
@@ -768,8 +891,8 @@ function fillSelect(id, values) {
   sel.value = cur;
 }
 
-// Filtro de año afecta tabla Y gráficos
-function applyAnioFilter() {
+// Todos los filtros actualizan tabla + KPIs + gráficos (pero NO métricas de performance)
+function applyFilters() {
   renderTable();
   renderKPIs();
   renderCharts();
@@ -828,6 +951,78 @@ function renderCharts() {
     ['#0077cc','#00a878','#e8530a','#f0a500']);
   renderBar('chartOrigen', countBy(d, 'ORIGEN / PUERTO'));
   renderGastosPorSemana(d);
+}
+
+// ── PERFORMANCE METRICS ─────────────────────────────────
+function diffDays(dateA, dateB) {
+  // dateB - dateA en días (positivo si dateB > dateA)
+  if (!dateA || !dateB) return null;
+  const diff = Math.round((dateB - dateA) / (1000 * 60 * 60 * 24));
+  return diff >= 0 ? diff : null;
+}
+
+function stats(values) {
+  const v = values.filter(x => x !== null && x >= 0);
+  if (v.length === 0) return null;
+  const n    = v.length;
+  const mean = v.reduce((a, b) => a + b, 0) / n;
+  const std  = n > 1
+    ? Math.sqrt(v.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (n - 1))
+    : 0;
+  return { mean: Math.round(mean), std: Math.round(std), n };
+}
+
+function renderPerformanceMetrics() {
+  const d = allData; // Siempre todos los datos históricos, sin filtro de año
+
+  // Separar por modo: marítimo (FCL, LCL) y aéreo (AIR)
+  const maritimo = d.filter(r => ['FCL','LCL'].includes(r['TIPO']?.toUpperCase()));
+  const aereo    = d.filter(r => r['TIPO']?.toUpperCase() === 'AIR');
+
+  function calcMetrics(rows) {
+    const tt = [], aduana = [], lt = [];
+    rows.forEach(r => {
+      const etd     = parseDate(r['ETD']);
+      const eta     = parseDate(r['ETA']);
+      const fabrica = parseDate(r['FABRICA']);
+      if (etd && eta)          tt.push(diffDays(etd, eta));
+      if (eta && fabrica)      aduana.push(diffDays(eta, fabrica));
+      if (etd && fabrica)      lt.push(diffDays(etd, fabrica));
+    });
+    return {
+      tt:     stats(tt),
+      aduana: stats(aduana),
+      lt:     stats(lt),
+    };
+  }
+
+  const mar = calcMetrics(maritimo);
+  const air = calcMetrics(aereo);
+
+  // Actualizar contadores n
+  document.getElementById('perfNMar').textContent =
+    maritimo.length ? ` · n=${maritimo.length}` : '';
+  document.getElementById('perfNAir').textContent =
+    aereo.length ? ` · n=${aereo.length}` : '';
+
+  // Renderizar cada celda
+  function renderStat(id, s) {
+    const el = document.getElementById(id);
+    if (!s) {
+      el.innerHTML = '<span class="insuf">sin datos</span>';
+    } else if (s.n < 2) {
+      el.innerHTML = `${s.mean} <span class="std">días · n=1</span>`;
+    } else {
+      el.innerHTML = `${s.mean} <span class="std">± ${s.std} días</span>`;
+    }
+  }
+
+  renderStat('perfTT_mar', mar.tt);
+  renderStat('perfTT_air', air.tt);
+  renderStat('perfAD_mar', mar.aduana);
+  renderStat('perfAD_air', air.aduana);
+  renderStat('perfLT_mar', mar.lt);
+  renderStat('perfLT_air', air.lt);
 }
 
 // ── GASTOS POR SEMANA DE ETA ─────────────────────────────
