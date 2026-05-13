@@ -1112,16 +1112,24 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModalDi
 function estadoBadge(estado) {
   if (!estado) return '<span class="badge badge-gray">—</span>';
   const u = estado.toUpperCase();
-  if (u.includes('ON BOARD'))   return `<span class="badge badge-blue">${esc(estado)}</span>`;
-  if (u.includes('ARRIBA'))     return `<span class="badge badge-green">${esc(estado)}</span>`;
-  if (u.includes('ESPERANDO'))  return `<span class="badge badge-yellow">${esc(estado)}</span>`;
-  if (u.includes('AGUARDANDO')) return `<span class="badge badge-orange">${esc(estado)}</span>`;
+  if (u.includes('IN TRANSIT') || u.includes('ON BOARD')) return `<span class="badge badge-blue">${esc(estado)}</span>`;
+  if (u.includes('ARRIBA'))                                return `<span class="badge badge-green">${esc(estado)}</span>`;
+  if (u.includes('ESPERANDO'))                             return `<span class="badge badge-yellow">${esc(estado)}</span>`;
+  if (u.includes('AGUARDANDO'))                            return `<span class="badge badge-orange">${esc(estado)}</span>`;
   return `<span class="badge badge-gray">${esc(estado)}</span>`;
 }
 
 function parseMoney(v) {
-  if (!v) return 0;
-  return parseFloat(String(v).replace(/[^0-9.]/g, '')) || 0;
+  if (!v || v === '***' || v === '0') return 0;
+  let s = String(v).trim();
+  // Formato argentino: 20.496,00 → quitar puntos, reemplazar coma por punto
+  if (s.includes(',')) {
+    s = s.replace(/\./g, '').replace(',', '.');
+  } else {
+    // Formato con solo puntos como decimales: quitar separadores de miles
+    s = s.replace(/\./g, '');
+  }
+  return parseFloat(s) || 0;
 }
 
 function formatMoney(v) {
